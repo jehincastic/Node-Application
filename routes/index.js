@@ -1,12 +1,12 @@
 const express = require('express'),
 	router = express.Router();
 
-const keyGeneration = require('../controllers/keyGeneration'),
-	{ successResponse, failureResponse } = require('../controllers/response'),
-	{ sendMail } = require('../controllers/sendMail'),
-	{ accountCreation } = require('../controllers/mailContents'),
+const keyGeneration = require('../methods/keyGeneration'),
+	{ successResponse, failureResponse } = require('../methods/response'),
+	{ sendMail } = require('../methods/sendMail'),
+	{ accountCreation } = require('../methods/mailContents'),
 	User = require('../models/user'),
-	{ validation } = require("../controllers/validator"),
+	{ validation } = require("../methods/validator"),
 	UserSession = require('../models/userSeesion');
 
 const userSessionGenerator = (user, res) => {
