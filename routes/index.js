@@ -2,34 +2,12 @@ const express = require('express'),
 	router = express.Router();
 
 const keyGeneration = require('../methods/keyGeneration'),
-	{ successResponse, failureResponse } = require('../methods/response'),
+	{ failureResponse } = require('../methods/response'),
 	{ sendMail } = require('../methods/sendMail'),
 	{ accountCreation } = require('../methods/mailContents'),
 	User = require('../models/user'),
 	{ validation } = require("../methods/validator"),
-	UserSession = require('../models/userSeesion');
-
-const userSessionGenerator = (user, res) => {
-	const userSession = new UserSession({
-		userId: user['_id'],
-		sessionId: keyGeneration.sessionIdGenerator(),
-		loggedInTime: new Date()
-	});
-	userSession.save()
-		.then(result => {
-			const responseData = {
-				_id: user['_id'],
-				name: user['name'],
-				email: user['email'],
-				sessionId: result['sessionId']
-			};
-			successResponse(res, responseData);
-		})
-		.catch(err => {
-			failureResponse(res, err);
-		});
-};
-
+	{ sessionGeneratorRegister, sessionGeneratorLogin } = require("../methods/session");
 router.post('/register', (req, res) => {
 	try {
 		let valid = validation(req.body);
@@ -58,14 +36,19 @@ router.post('/register', (req, res) => {
 				.then(user => {
 					sendMail(email, subject, html)
 						.then(info => {
-							userSessionGenerator(user, res);
+							sessionGeneratorRegister(user, res);
 						})
 						.catch(err => {
 							failureResponse(res, err);
 						});
 				})
 				.catch(err => {
-					failureResponse(res, err);
+					let errMsg = err;
+					if (err.message) {
+						err.message.includes("duplicate key error");
+						errMsg = err.message.includes("duplicate key error") ? err.message.includes("email") ? "Email Already Registred" : "Phone Number Already Registred" : err;
+					}
+					failureResponse(res, errMsg);
 				});
 		} else {
 			failureResponse(res, valid.message);
@@ -86,7 +69,7 @@ router.post('/login', (req, res) => {
 				if (user) {
 					const passwordValid = keyGeneration.passwordCheck(password, user.password);
 					if (passwordValid) {
-						userSessionGenerator(user, res);
+						sessionGeneratorLogin(user, res);
 					} else {
 						failureResponse(res, { message: errorMessage });
 					}

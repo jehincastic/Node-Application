@@ -6,12 +6,16 @@ const express = require('express'),
 
 require('dotenv').config();
 
-const indexRoutes = require('./routes/index');
+const indexRoutes = require('./routes/index'),
+	{ scheduler } = require("./schedulers/scheduler");
 
 mongoose.set('useCreateIndex', true);
 
 mongoose.connect(process.env.dbLink, { useNewUrlParser: true, useUnifiedTopology: true })
-	.then(() => console.log("MongoDB Connected Successfully"))
+	.then(() => {
+		console.log("MongoDB Connected Successfully.....");
+		scheduler();
+	})
 	.catch(err => console.log(err));
 
 app.use(bodyParser.urlencoded({ extended: false }));
