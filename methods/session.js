@@ -1,4 +1,4 @@
-const UserSession = require('../models/userSeesion'),
+const UserSession = require('../models/userSession'),
       keyGeneration = require("./keyGeneration"),
       { successResponse, failureResponse } = require('../methods/response');
 
@@ -77,5 +77,33 @@ module.exports = {
                     reject(err)
                 })
         })
+    },
+    validateAndUpdateSession: (req, res, next) => {
+        const { sessionId, userId } = req.body;
+        if (sessionId && userId) {
+            UserSession.findOne({sessionId})
+                .then(userSession => {
+                    if (userSession) {
+                        if (!userSession.expired && userSession.userId == userId) {
+                            UserSession.findOneAndUpdate({sessionId}, {loggedInTime: new Date()})
+                                .then(data => {
+                                    next();
+                                })
+                                .catch(err => {
+                                    failureResponse(res, "Could Not Authenticate");
+                                })
+                        } else {
+                            failureResponse(res, userSession.userId != userId ? "Invalid Session" : "Session Expired");
+                        }
+                    } else {
+                        failureResponse(res, "Invalid Session");
+                    }
+                })
+                .catch(err => {
+                    failureResponse(res, "Could Not Authenticate");
+                })
+        } else {
+            failureResponse(res, sessionId ? 'User Id Missing' : 'Session Id Missing')
+        }
     }
 }
