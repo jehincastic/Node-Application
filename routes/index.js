@@ -2,11 +2,13 @@ const express = require('express'),
 	router = express.Router();
 
 const keyGeneration = require('../methods/keyGeneration'),
-	{ failureResponse } = require('../methods/response'),
+	{ failureResponse, successResponse } = require('../methods/response'),
 	{ sendMail } = require('../methods/sendMail'),
 	{ accountCreation } = require('../methods/mailContents'),
 	User = require('../models/user'),
+	Usersession = require("../models/userSession"),
 	{ validation } = require("../methods/validator"),
+	getCookie = require("../methods/cookie"),
 	{ sessionGeneratorRegister, sessionGeneratorLogin } = require("../methods/session");
 router.post('/register', (req, res) => {
 	try {
@@ -82,6 +84,50 @@ router.post('/login', (req, res) => {
 			});
 	} else {
 		failureResponse(res, valid.message);
+	}
+});
+
+router.post('/fetchUserInfo', (req, res) => {
+	if (req.headers.hasOwnProperty("cookie")) {
+		try {
+			const sessionId = getCookie('sessionId', req.headers.cookie);
+			Usersession.aggregate([
+				{
+					$match: {
+						sessionId: sessionId
+					}
+				},{
+					$lookup: {
+						from: "users",
+						localField: "userId",
+						foreignField: "_id",
+						as: "userInfo"
+					}
+				}
+			]).exec((err, data) => {
+				if (err) {
+					failureResponse(res, err);
+				} else if (data.length > 0) {
+					if (!data[0].expired) {
+						const user = data[0]["userInfo"][0];
+						const userInfo = {
+							_id: user['_id'],
+							name: user['name'],
+							email: user['email']
+						}
+						successResponse(res, userInfo);
+					} else {
+						failureResponse(res, {message: "Session Expired"})
+					}
+				} else {
+					failureResponse(res, {message: "Invalid Session Id"});
+				}
+			})
+		} catch (err) {
+			failureResponse(res, err);
+		}
+	} else {
+		failureResponse(res, {message: "No Cookies Present"})
 	}
 });
 

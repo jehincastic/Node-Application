@@ -14,7 +14,7 @@ mongoose.set('useFindAndModify', false);
 mongoose.connect(process.env.dbLink, { useNewUrlParser: true, useUnifiedTopology: true })
 	.then(() => {
 		console.log("MongoDB Connected Successfully.....");
-		scheduler();
+		// scheduler();
 	})
 	.catch(err => console.log(err));
 
